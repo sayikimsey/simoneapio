@@ -1,0 +1,98 @@
+// {
+//   "compilerOptions": {
+//     /* -------------------------------------------------------------------
+//      * ✅ Basisoptionen
+//      * Diese Optionen legen grundlegende Verhaltensweisen des Compilers fest.
+//      * ------------------------------------------------------------------- */
+//     "target": "ES2017", // Legt die ECMAScript-Zielversion für den kompilierten JavaScript-Code fest. ES2017 ist eine gängige Wahl, die moderne Features ermöglicht, aber breite Browserkompatibilität bietet.
+//     "lib": ["dom", "dom.iterable", "esnext"], // Definiert die Bibliotheken, die im Projekt verfügbar sind. "dom" für DOM-APIs, "dom.iterable" für iterable DOM-Typen und "esnext" für alle zukünftigen ECMAScript-Features.
+//     "allowJs": true, // Ermöglicht das Einbeziehen von JavaScript-Dateien in ein TypeScript-Projekt. Nützlich für die Migration oder die Integration von JS-Bibliotheken.
+//     "skipLibCheck": true, // Überspringt die Typüberprüfung von Deklarationsdateien (.d.ts). Kann den Kompilierungsprozess beschleunigen, birgt aber das Risiko, Typfehler in Bibliotheken zu übersehen.
+//     "strict": true, // Aktiviert einen Satz strenger Typüberprüfungsoptionen, die die Codequalität und -sicherheit verbessern. Dazu gehören z.B. `noImplicitAny`, `strictNullChecks`, `strictFunctionTypes`.
+//     "noEmit": false, // Weist TypeScript an, keine Ausgabedateien (JavaScript-Dateien) zu generieren. Dies ist typisch für Next.js-Projekte, da Next.js seinen eigenen Kompilierungs-/Transpilierungsprozess (mit Babel oder SWC) für TypeScript verwendet.
+//     "esModuleInterop": true, // Ermöglicht die Kompatibilität zwischen CommonJS- und ES-Modulen. Verbessert den Import von CommonJS-Modulen in ES-Modulen.
+//     "module": "esnext", // Legt das Modulsystem für den generierten Code fest. "esnext" verwendet das neueste ES-Modulformat.
+//     "moduleResolution": "bundler", // Definiert, wie Module aufgelöst werden. "bundler" ist für moderne Bundler wie Webpack oder Parcel optimiert.
+//     "resolveJsonModule": true, // Ermöglicht das Importieren von .json-Dateien als Module, wobei deren Inhalt automatisch typisiert wird.
+//     "isolatedModules": true, // Stellt sicher, dass jede Datei als separates Modul behandelt werden kann. Erforderlich für einige Transpiler wie Babel oder SWC, die dateibasierte Transpilation durchführen.
+//     "jsx": "preserve", // Legt fest, wie JSX-Code behandelt wird. "preserve" behält JSX bei, damit ein nachfolgender Transpiler (wie Babel/SWC in Next.js) es weiterverarbeiten kann.
+//     "incremental": true, // Aktiviert inkrementelle Kompilierungen, die den Kompilierungsprozess beschleunigen, indem sie nur geänderte Dateien neu kompilieren.
+//     "plugins": [
+//       {
+//         "name": "next" // Integriert den Next.js TypeScript-Plugin, der spezifische Next.js-Features und Optimierungen für TypeScript bereitstellt.
+//       }
+//     ],
+//     /* -------------------------------------------------------------------
+//      * ✅ Pfad-Alias-Mapping
+//      * Ermöglicht das Definieren von Aliasen für Importpfade, um relative
+//      * Pfade zu vereinfachen und die Wartbarkeit zu verbessern.
+//      * ------------------------------------------------------------------- */
+//     "paths": {
+//       "@/*": ["./src/*"] // Definiert einen Alias, bei dem Imports, die mit "@/" beginnen, auf das `./src/`-Verzeichnis abgebildet werden.
+//     },
+//     "outDir": "dist"
+//   },
+//   /* -------------------------------------------------------------------
+//    * ✅ Einschluss- und Ausschlussregeln
+//    * Diese Regeln steuern, welche Dateien vom TypeScript-Compiler
+//    * berücksichtigt oder ignoriert werden sollen.
+//    * ------------------------------------------------------------------- */
+//   "include": [
+//     "next-env.d.ts",
+//     "**/*.ts",
+//     "**/*.tsx",
+//     ".next/types/**/*.ts",
+//     "tailwind.config.ts"
+//   ], // Gibt ein Array von Dateimustern an, die in das Projekt einbezogen werden sollen.
+//   // "next-env.d.ts": Eine von Next.js generierte Typdefinitionsdatei.
+//   // "**/*.ts", "**/*.tsx": Alle TypeScript- und TSX-Dateien im Projekt und seinen Unterverzeichnissen.
+//   // ".next/types/**/*.ts": Von Next.js generierte Typen (z.B. für Server/Client-Modulgrenzen).
+//   // "tailwind.config.ts": Die Tailwind-Konfigurationsdatei.
+//   "exclude": ["node_modules"] // Gibt ein Array von Dateimustern an, die vom Compiler ausgeschlossen werden sollen. Das "node_modules"-Verzeichnis enthält installierte Pakete und wird standardmäßig ausgeschlossen.
+// }
+
+
+{
+  "compilerOptions": {
+    /* -------------------------------------------------------------------
+     * ✅ Basisoptionen
+     * Diese Optionen legen grundlegende Verhaltensweisen des Compilers fest.
+     * ------------------------------------------------------------------- */
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": false, // ✅ KORRIGIERT: Auf 'false' gesetzt, um die Ausgabe zu aktivieren.
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    /* -------------------------------------------------------------------
+     * ✅ Pfad-Alias-Mapping
+     * ------------------------------------------------------------------- */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "outDir": "dist" // ✅ KORRIGIERT: Die Ausgabedateien werden nun hier abgelegt, wenn 'noEmit' auf false gesetzt wird.
+  },
+  /* -------------------------------------------------------------------
+   * ✅ Einschluss- und Ausschlussregeln
+   * ------------------------------------------------------------------- */
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "tailwind.config.ts"
+  ],
+  "exclude": ["node_modules"]
+}

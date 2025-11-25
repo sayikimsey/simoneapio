@@ -1,0 +1,65 @@
+/*
+Diese Datei definiert die CSS-Variablen für das dunkle Theme von react-data-grid.
+Sie wird von Komponenten importiert, die das Datenraster verwenden, um das dunkle Theme anzuwenden.
+*/
+
+:root {
+  /* Verwendung von Tailwind CSS Farbpalettenwerten für Konsistenz */
+  /* https://tailwindcss.com/docs/customizing-colors */
+
+  /* -------------------------------------------------------------------
+   * ✅ Haupt-Hintergrund und Textfarben
+   * Diese Variablen steuern die primären Hintergrund- und Textfarben
+   * des gesamten Datenrasters im dunklen Modus.
+   * ------------------------------------------------------------------- */
+  --rdg-background-color: theme("colors.slate.800"); /* Entspricht Tailwind's bg-slate-800 */
+  --rdg-color: theme("colors.slate.200"); /* Entspricht Tailwind's text-slate-200 */
+
+  /* -------------------------------------------------------------------
+   * ✅ Header-Farben
+   * Diese Variablen definieren die Hintergrund- und Textfarben für den
+   * Header-Bereich des Datenrasters.
+   * ------------------------------------------------------------------- */
+  --rdg-header-background-color: theme(
+    "colors.slate.900"
+  ); /* Etwas dunkler als der Haupt-Hintergrund für Kontrast */
+  --rdg-header-color: theme("colors.slate.100"); /* Hellerer Text für den Header */
+
+  /* -------------------------------------------------------------------
+   * ✅ Zeilenfarben
+   * Diese Variablen steuern die Hintergrundfarben von Zeilen,
+   * insbesondere beim Hovern und wenn Zeilen ausgewählt sind.
+   * ------------------------------------------------------------------- */
+  --rdg-row-hover-background-color: theme("colors.slate.700"); /* Hintergrundfarbe beim Hover über eine Zeile */
+  --rdg-row-selected-background-color: theme("colors.indigo.900"); /* Hintergrundfarbe für ausgewählte Zeilen */
+  --rdg-row-selected-hover-background-color: theme("colors.indigo.800"); /* Hintergrundfarbe beim Hover über eine ausgewählte Zeile */
+
+  /* -------------------------------------------------------------------
+   * ✅ Zellenfarben und Schatten
+   * Diese Variablen betreffen die Darstellung einzelner Zellen,
+   * insbesondere für fixierte (eingefrorene) Zellen.
+   * ------------------------------------------------------------------- */
+  --rdg-cell-frozen-background-color: theme(
+    "colors.slate.900"
+  ); /* Hintergrundfarbe für fixierte Zellen (ähnlich dem Header) */
+  --rdg-cell-frozen-box-shadow: theme("boxShadow.lg"); /* Schatten für fixierte Zellen */
+
+  /* -------------------------------------------------------------------
+   * ✅ Ränder und Trennlinien
+   * Diese Variablen steuern die Farben von Rändern, Trennlinien und Checkboxen.
+   * ------------------------------------------------------------------- */
+  --rdg-border-color: theme("colors.slate.600"); /* Subtilerer Rand für das Datenraster */
+  --rdg-checkbox-color: theme("colors.indigo.400"); /* Farbe der Checkboxen */
+  --rdg-checkbox-focus-color: theme("colors.indigo.300"); /* Farbe der Checkboxen im Fokus-Zustand */
+  --rdg-checkbox-disabled-border-color: theme("colors.slate.500"); /* Randfarbe von deaktivierten Checkboxen */
+  --rdg-checkbox-disabled-background-color: theme("colors.slate.700"); /* Hintergrundfarbe von deaktivierten Checkboxen */
+
+  /* -------------------------------------------------------------------
+   * ✅ Scrollbalken-Farben
+   * Diese Variablen passen die Farben der Scrollbalken im Datenraster an,
+   * passend zu den globalen Scrollbalken-Einstellungen in 'globals.css'.
+   * ------------------------------------------------------------------- */
+  --rdg-scrollbar-background-color: theme("colors.slate.700"); /* Hintergrundfarbe des Scrollbalkens */
+  --rdg-scrollbar-color: theme("colors.slate.500"); /* Farbe des Scrollbalken-Daumens */
+  --rdg-scrollbar-hover-color: theme("colors.slate.400"); /* Farbe des Scrollbalken-Daumens beim Hover */
+}

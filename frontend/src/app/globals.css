@@ -1,0 +1,502 @@
+@import "tailwindcss"; /* Importiert Tailwind CSS, das die Basis für viele hier definierte Farben und Utility-Klassen bildet. */
+
+/*
+--------------------------------------------------------------------------------
+ ✅ Globale CSS-Variablen für das Design (Light Theme als Standard)
+ Diese Variablen werden im gesamten Frontend verwendet, um ein konsistentes Design
+ zu gewährleisten und Theme-Wechsel einfach zu ermöglichen.
+--------------------------------------------------------------------------------
+*/
+:root {
+  /* Grundlegende RGB-Werte, die möglicherweise von Next.js oder anderen Bibliotheken verwendet werden. */
+  --foreground-rgb: 0, 0, 0; /* Vordergrundfarbe (Text) im RGB-Format */
+  --background-start-rgb: 214, 219, 220; /* Startfarbe des Hintergrundverlaufs im RGB-Format */
+  --background-end-rgb: 255, 255, 255; /* Endfarbe des Hintergrundverlaufs im RGB-Format */
+
+  /* ==========================================================================
+     Semantic Color Palette - Light Theme
+     Diese Farbvariablen sind semantisch benannt, um ihre Bedeutung im UI
+     widerzuspiegeln, anstatt sich auf spezifische Farbnamen zu beziehen.
+     ========================================================================== */
+
+  /* Basis- & Oberflächenfarben (Hintergründe von Elementen) */
+  --color-background: #f9fafb; /* Hintergrundfarbe der gesamten Seite (ähnlich Tailwind gray-50) */
+  --color-surface: #ffffff; /* Hintergrundfarbe für Karten, Modale, Formularfelder (weiß) */
+  --color-surface-2: #f3f4f6; /* Sekundäre Oberflächenfarbe, z.B. für Hover-Zustände oder subtile Hintergründe (ähnlich Tailwind gray-100) */
+
+  /* Textfarben */
+  --color-text-primary: #04285e; /* Primäre Textfarbe für helle Hintergründe (dunkelblau) */
+  --color-text-secondary: #6b7280; /* Sekundäre/gedämpfte Textfarbe (ähnlich Tailwind gray-500) */
+  --color-text-inverted: #f7fafc; /* Textfarbe für dunkle Hintergründe (z.B. auf Bildern oder farbigen Flächen) */
+
+  /* Akzent- & Statusfarben */
+  --color-accent: #4f46e5; /* Akzentfarbe, typisch für interaktive Elemente wie Buttons, Links (ähnlich Tailwind indigo-600) */
+  --color-accent-hover: #4338ca; /* Akzentfarbe im Hover-Zustand */
+  --color-danger: #dc3545; /* Farbe für Warnungen/Fehler (Rot) */
+  --color-danger-hover: #c82333; /* Farbe für Warnungen/Fehler im Hover-Zustand */
+  --color-success: #28a745; /* Farbe für Erfolgsmeldungen (Grün) */
+  --color-warning: #ffc107; /* Farbe für Warnungen (Gelb) */
+  --color-info: #17a2b8; /* Farbe für Informationsmeldungen (Cyan/Türkis) */
+
+  /* Text auf farbigen Hintergründen (für Kontrast) */
+  --color-text-on-accent: #ffffff; /* Textfarbe auf Akzentfarbe (Weiß) */
+  --color-text-on-danger: #ffffff; /* Textfarbe auf Gefahrfarbe (Weiß) */
+  --color-text-on-info: #0c5460; /* Textfarbe auf Info-Farbe */
+  --color-text-on-success: #155724; /* Textfarbe auf Erfolgsfarbe */
+  --color-text-on-warning: #856404; /* Textfarbe auf Warnfarbe */
+
+  /* Seitenleistenfarben */
+  --color-sidebar-background: var(--color-surface); /* Hintergrund der Seitenleiste */
+  --color-sidebar-text: var(--color-text-secondary); /* Textfarbe in der Seitenleiste */
+  --color-sidebar-text-hover: var(--color-text-primary); /* Textfarbe beim Hover in der Seitenleiste */
+  --color-sidebar-active-background: var(--color-accent); /* Hintergrund für aktiven Navigationspunkt in der Seitenleiste */
+  --color-sidebar-active-text: var(--color-text-on-accent); /* Textfarbe für aktiven Navigationspunkt in der Seitenleiste */
+  --color-sidebar-hover-background: var(--color-surface-2); /* Hintergrund beim Hover in der Seitenleiste */
+  --color-sidebar-border: var(--border-color); /* Rahmenfarbe der Seitenleiste */
+
+  /* Andere UI-Farben */
+  --border-color: #e5e7eb; /* Standard-Rahmenfarbe (ähnlich Tailwind gray-200) */
+  --placeholder-color: #9ca3af; /* Farbe für Platzhaltertext in Eingabefeldern (ähnlich Tailwind gray-400) */
+}
+
+/*
+--------------------------------------------------------------------------------
+ ✅ Dunkles Theme (wird angewendet, wenn das 'dark'-Klasse auf dem HTML-Element ist)
+ Diese Variablen überschreiben die Standardfarben für den dunklen Modus.
+--------------------------------------------------------------------------------
+*/
+.dark {
+  /* RGB-Werte für dunklen Modus */
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+
+  /* ==========================================================================
+     Semantic Color Palette - Dark Theme
+     ========================================================================== */
+
+  /* Basis- & Oberflächenfarben für dunkles Theme */
+  --color-background: #111827; /* Hintergrund der Seite (ähnlich Tailwind gray-900) */
+  --color-surface: #1f2937; /* Oberflächenfarbe (ähnlich Tailwind gray-800) */
+  --color-surface-2: #374151; /* Sekundäre Oberflächenfarbe (ähnlich Tailwind gray-700) */
+
+  /* Textfarben für dunkles Theme */
+  --color-text-primary: #f9fafb; /* Primäre Textfarbe (ähnlich Tailwind gray-50) */
+  --color-text-secondary: #9ca3af; /* Sekundäre/gedämpfte Textfarbe (ähnlich Tailwind gray-400) */
+  --color-text-inverted: #1f2937; /* Text für helle Hintergründe im dunklen Modus */
+
+  /* Akzent- & Statusfarben für dunkles Theme */
+  --color-accent: #818cf8; /* Akzentfarbe (ähnlich Tailwind indigo-400) */
+  --color-accent-hover: #6366f1; /* Akzentfarbe im Hover-Zustand */
+  --color-danger: #f87171; /* Gefahrfarbe (ähnlich Tailwind red-400) */
+  --color-danger-hover: #ef4444; /* Gefahrfarbe im Hover-Zustand */
+  --color-success: #4ade80; /* Erfolgsfarbe (ähnlich Tailwind green-400) */
+  --color-warning: #facc15; /* Warnfarbe (ähnlich Tailwind yellow-400) */
+  --color-info: #60a5fa; /* Info-Farbe (ähnlich Tailwind blue-400) */
+
+  /* Text auf farbigen Hintergründen für dunkles Theme */
+  --color-text-on-accent: #1f2937; /* Textfarbe auf Akzentfarbe */
+  --color-text-on-danger: #ffffff; /* Textfarbe auf Gefahrfarbe */
+  --color-text-on-info: #f9fafb; /* Textfarbe auf Info-Farbe */
+  --color-text-on-success: #14532d; /* Textfarbe auf Erfolgsfarbe (ähnlich Tailwind green-900) */
+  --color-text-on-warning: #78350f; /* Textfarbe auf Warnfarbe (ähnlich Tailwind amber-800) */
+
+  /* Seitenleistenfarben für dunkles Theme */
+  --color-sidebar-background: #1f2937; /* Hintergrund der Seitenleiste */
+  --color-sidebar-text: #d1d5db; /* Textfarbe in der Seitenleiste */
+  --color-sidebar-text-hover: #ffffff; /* Textfarbe beim Hover in der Seitenleiste */
+  --color-sidebar-active-background: var(--color-accent); /* Hintergrund für aktiven Navigationspunkt */
+  --color-sidebar-active-text: var(--color-text-on-accent); /* Textfarbe für aktiven Navigationspunkt */
+  --color-sidebar-hover-background: #374151; /* Hintergrund beim Hover in der Seitenleiste */
+  --color-sidebar-border: #374151; /* Rahmenfarbe der Seitenleiste */
+
+  /* Andere UI-Farben für dunkles Theme */
+  --border-color: #374151; /* Standard-Rahmenfarbe (ähnlich Tailwind gray-700) */
+  --placeholder-color: #6b7280; /* Farbe für Platzhaltertext (ähnlich Tailwind gray-500) */
+}
+
+/* ==========================================================================
+   Typografie-Variablen
+   Diese Variablen definieren Schriftarten, Schriftgrößen und Schriftgewichte
+   für eine konsistente Typografie im gesamten UI.
+   ========================================================================== */
+:root {
+  --font-primary: "Inter", sans-serif; /* Primäre Schriftart (z.B. Inter, mit Fallback auf serifenlose Schriften) */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px (Grundschriftgröße) */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-weight-light: 300; /* Leichte Schriftstärke */
+  --font-weight-normal: 400; /* Normale Schriftstärke */
+  --font-weight-medium: 500; /* Mittlere Schriftstärke */
+  --font-weight-semibold: 600; /* Halbfette Schriftstärke */
+  --font-weight-bold: 700; /* Fette Schriftstärke */
+}
+
+/* ==========================================================================
+   Basis- & Globale Stile
+   Diese Regeln legen grundlegende Stile für HTML-Elemente fest.
+   ========================================================================== */
+
+/* Body-Stil: Setzt Hintergrund, Textfarbe und Schriftart für die gesamte Seite. */
+body {
+  background: var(--color-background); /* Hintergrundfarbe der Seite (adaptiv zum Theme) */
+  color: var(--color-text-primary); /* Primäre Textfarbe (adaptiv zum Theme) */
+  font-family: var(--font-primary); /* Primäre Schriftart */
+}
+
+/* Link-Stile */
+a {
+  color: var(--color-accent); /* Standard-Linkfarbe (Akzentfarbe) */
+  text-decoration: none; /* Keine Unterstreichung standardmäßig */
+  transition: color 0.2s ease-in-out; /* Sanfter Farbübergang beim Hover */
+}
+
+a:hover {
+  color: var(--color-accent-hover); /* Linkfarbe beim Hover */
+  text-decoration: none; /* Keine Unterstreichung beim Hover */
+  /* Zusätzliche, auskommentierte Hover-Effekte:
+  font-weight: bold;
+  font-style: italic;
+  text-transform: uppercase; */
+}
+
+/* ==========================================================================
+   Basis-Steuerelement-Styling
+   Diese Regeln definieren das Aussehen von Formularsteuerelementen.
+   ========================================================================== */
+
+/* Eingabefelder (Text, Zahlen, E-Mail, Passwort) und Textbereiche */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea {
+  background-color: var(--color-surface); /* Hintergrundfarbe */
+  color: var(--color-text-primary); /* Textfarbe */
+  border: 1px solid var(--border-color); /* Rahmenfarbe */
+  border-radius: 0.375rem; /* Leichte Abrundung */
+  padding: 0.5rem 0.75rem; /* Innenabstand */
+  font-size: var(--font-size-base); /* Schriftgröße */
+  width: 100%; /* Volle Breite */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Sanfte Übergänge für Rahmen und Schatten */
+}
+
+/* Platzhaltertext für Eingabefelder */
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+textarea::placeholder {
+  color: var(--placeholder-color); /* Farbe des Platzhaltertextes */
+  opacity: 1; /* Sicherstellen, dass der Platzhalter sichtbar ist */
+}
+
+/* Fokus-Zustand für Eingabefelder und Textbereiche */
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  outline: none; /* Standard-Fokus-Outline entfernen */
+  border-color: var(--color-accent); /* Rahmenfarbe auf Akzentfarbe ändern */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent); /* Fokus-Schatten */
+}
+
+/* Auswahlfelder (Dropdowns) */
+select {
+  -webkit-appearance: none; /* Entfernt Standard-Browser-Styling für Safari/Chrome */
+  -moz-appearance: none; /* Entfernt Standard-Browser-Styling für Firefox */
+  appearance: none; /* Entfernt Standard-Browser-Styling */
+  background-color: var(--color-surface); /* Hintergrundfarbe */
+  color: var(--color-text-primary); /* Textfarbe */
+  border: 1px solid var(--border-color); /* Rahmen */
+  border-radius: 0.375rem; /* Abrundung */
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem; /* Innenabstand (rechts extra für den Pfeil) */
+  font-size: var(--font-size-base); /* Schriftgröße */
+  width: 100%; /* Volle Breite */
+  cursor: pointer; /* Zeigt an, dass es klickbar ist */
+  /* Hintergrundbild für den Dropdown-Pfeil (SVG-Inline-Code) */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center; /* Position des Pfeils */
+  background-repeat: no-repeat; /* Pfeil nicht wiederholen */
+  background-size: 1.5em 1.5em; /* Größe des Pfeils */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Sanfte Übergänge */
+}
+
+/* Pfeilfarbe für Select im dunklen Modus anpassen */
+.dark select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a0aec0' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Fokus-Zustand für Auswahlfelder */
+select:focus {
+  outline: none; /* Standard-Fokus-Outline entfernen */
+  border-color: var(--color-accent); /* Rahmenfarbe ändern */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent); /* Fokus-Schatten */
+}
+
+/* Checkboxen und Radio-Buttons */
+input[type="checkbox"],
+input[type="radio"] {
+  -webkit-appearance: none; /* Entfernt Standard-Browser-Styling */
+  -moz-appearance: none;
+  appearance: none;
+  width: 1.25em; /* Breite */
+  height: 1.25em; /* Höhe */
+  border: 1px solid var(--border-color); /* Rahmen */
+  background-color: var(--color-surface); /* Hintergrund */
+  vertical-align: middle; /* Vertikale Ausrichtung */
+  cursor: pointer; /* Zeigt an, dass es klickbar ist */
+  position: relative; /* Für das Pseudo-Element */
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Sanfte Übergänge */
+}
+
+/* Checkboxen spezifisch */
+input[type="checkbox"] {
+  border-radius: 0.25rem; /* Abgerundete Ecken */
+}
+/* Radio-Buttons spezifisch */
+input[type="radio"] {
+  border-radius: 50%; /* Runde Form */
+}
+
+/* Checkboxen und Radio-Buttons im 'checked'-Zustand */
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background-color: var(--color-accent); /* Hintergrund auf Akzentfarbe */
+  border-color: var(--color-accent); /* Rahmen auf Akzentfarbe */
+}
+
+/* Häkchen für aktivierte Checkboxen (Pseudo-Element) */
+input[type="checkbox"]:checked::before {
+  content: ""; /* Leerer Inhalt */
+  display: block;
+  width: 0.35em;
+  height: 0.7em;
+  border: solid white; /* Weißer Rahmen für das Häkchen */
+  border-width: 0 2px 2px 0; /* Nur unten und rechts */
+  transform: rotate(45deg); /* Drehung für Häkchenform */
+  position: absolute;
+  top: 0.1em;
+  left: 0.4em;
+}
+
+/* Punkt für aktivierte Radio-Buttons (Pseudo-Element) */
+input[type="radio"]:checked::before {
+  content: ""; /* Leerer Inhalt */
+  display: block;
+  width: 0.6em; /* Größe des Punktes */
+  height: 0.6em;
+  border-radius: 50%; /* Runde Form */
+  background-color: white; /* Weißer Hintergrund für den Punkt */
+  position: absolute;
+  top: 50%; /* Zentrierung */
+  left: 50%;
+  transform: translate(-50%, -50%); /* Exakte Zentrierung */
+}
+
+/* Fokus-Zustand für Checkboxen und Radio-Buttons */
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  outline: none; /* Standard-Fokus-Outline entfernen */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent); /* Fokus-Schatten */
+}
+
+/* ==========================================================================
+   Komponenten- & Utility-Klassen
+   Diese Regeln definieren das Aussehen von wiederverwendbaren UI-Komponenten
+   und Utility-Klassen.
+   ========================================================================== */
+
+/* Standard-Button-Stil (Sekundär) */
+button {
+  display: inline-flex; /* Flex-Container für Inhalt */
+  align-items: center; /* Inhalt vertikal zentrieren */
+  justify-content: center; /* Inhalt horizontal zentrieren */
+  padding: 0.25rem 0.875rem; /* Innenabstand */
+  font-size: var(--font-size-base); /* Schriftgröße */
+  font-weight: var(--font-weight-medium); /* Schriftstärke */
+  border-radius: 0.375rem; /* Abrundung */
+  cursor: pointer; /* Zeigt an, dass es klickbar ist */
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out; /* Sanfte Übergänge */
+  border: 1px solid var(--border-color); /* Rahmen */
+  background-color: var(--color-surface-2); /* Hintergrundfarbe */
+  color: var(--color-text-primary); /* Textfarbe */
+}
+
+/* Hover-Zustand für Standard-Buttons */
+button:hover {
+  background-color: color-mix(in srgb, var(--border-color) 40%, transparent); /* Hintergrund beim Hover */
+}
+
+/* Button-Varianten */
+.btn-primary {
+  background-color: var(--color-accent); /* Primärer Button-Hintergrund */
+  color: var(--color-text-on-accent); /* Textfarbe auf primärem Button */
+  border-color: var(--color-accent); /* Rahmenfarbe */
+}
+.btn-primary:hover {
+  background-color: var(--color-accent-hover); /* Primärer Button-Hintergrund beim Hover */
+  border-color: var(--color-accent-hover); /* Rahmenfarbe beim Hover */
+}
+
+.btn-danger {
+  background-color: var(--color-danger); /* Gefahr-Button-Hintergrund */
+  color: var(--color-text-on-danger); /* Textfarbe auf Gefahr-Button */
+  border-color: var(--color-danger); /* Rahmenfarbe */
+}
+.btn-danger:hover {
+  background-color: var(--color-danger-hover); /* Gefahr-Button-Hintergrund beim Hover */
+  border-color: var(--color-danger-hover); /* Rahmenfarbe beim Hover */
+}
+
+/* Icon-Button - für runde Buttons mit Hover-/Fokus-Feedback */
+.btn-icon {
+  padding: 0; /* Kein Innenabstand */
+  width: 2.5rem; /* Feste Breite (40px) */
+  height: 2.5rem; /* Feste Höhe (40px) */
+  border-radius: 9999px; /* Macht den Button kreisförmig */
+  background-color: transparent; /* Transparenter Hintergrund */
+  color: var(--color-text-secondary); /* Icon-Farbe */
+  border-color: transparent; /* Transparenter Rahmen */
+}
+.btn-icon:hover {
+  color: var(--color-text-primary); /* Icon-Farbe beim Hover */
+  background-color: var(--color-surface-2); /* Hintergrund beim Hover */
+  border-color: transparent; /* Sicherstellen, dass der Rahmen transparent bleibt */
+}
+.btn-icon:focus-visible {
+  outline: none; /* Standard-Fokus-Outline entfernen */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent); /* Fokus-Schatten */
+}
+
+/* Ghost Icon Button - für reine Icon-Buttons ohne Hintergrund (z.B. Passwort-Umschalter) */
+.btn-icon-ghost {
+  padding: 0.5rem; /* Innenabstand */
+  border-radius: 9999px; /* Kreisförmig */
+  background-color: transparent; /* Transparenter Hintergrund */
+  border-color: transparent; /* Transparenter Rahmen */
+  color: var(--color-text-secondary); /* Icon-Farbe */
+}
+.btn-icon-ghost:hover {
+  background-color: transparent; /* Hintergrund transparent beim Hover */
+  border-color: transparent; /* Rahmen transparent beim Hover */
+  color: var(--color-text-primary); /* Icon-Farbe beim Hover */
+}
+.btn-icon-ghost:focus-visible {
+  outline: none; /* Standard-Fokus-Outline entfernen */
+  background-color: transparent; /* Hintergrund transparent */
+  border-color: transparent; /* Rahmen transparent */
+  color: var(--color-text-primary); /* Icon-Farbe */
+}
+
+/* Alert-Varianten (für Nachrichtenboxen) */
+.alert {
+  padding: 1rem; /* Innenabstand */
+  margin-bottom: 1rem; /* Unterer Abstand */
+  border: 1px solid transparent; /* Rahmen (Farbe wird spezifisch gesetzt) */
+  border-radius: 0.375rem; /* Abrundung */
+}
+
+.alert-info {
+  color: var(--color-text-on-info); /* Textfarbe */
+  background-color: color-mix(in srgb, var(--color-info) 20%, transparent); /* Hintergrund (transparente Mischung) */
+  border-color: color-mix(in srgb, var(--color-info) 40%, transparent); /* Rahmenfarbe (transparente Mischung) */
+}
+/* Info-Alert im dunklen Modus */
+.dark .alert-info {
+  color: var(--color-text-primary); /* Textfarbe anpassen */
+  background-color: color-mix(in srgb, var(--color-info) 30%, transparent); /* Hintergrund anpassen */
+}
+
+.alert-success {
+  color: var(--color-text-on-success);
+  background-color: color-mix(in srgb, var(--color-success) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+}
+/* Erfolgs-Alert im dunklen Modus */
+.dark .alert-success {
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.alert-warning {
+  color: var(--color-text-on-warning);
+  background-color: color-mix(in srgb, var(--color-warning) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+}
+/* Warnungs-Alert im dunklen Modus */
+.dark .alert-warning {
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
+.alert-danger {
+  color: var(--color-text-on-danger);
+  background-color: color-mix(in srgb, var(--color-danger) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+}
+/* Gefahr-Alert im dunklen Modus */
+.dark .alert-danger {
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+/* ==========================================================================
+   Haupt-Layout-Komponenten
+   Diese Regeln betreffen das Styling der Haupt-Layout-Komponenten wie der Seitenleiste.
+   ========================================================================== */
+
+/* Seitenleiste (Sidebar) */
+.app-sidebar {
+  background-color: var(--color-sidebar-background); /* Hintergrundfarbe */
+  color: var(--color-sidebar-text); /* Textfarbe */
+  border-right: 1px solid var(--color-sidebar-border); /* Rechter Rahmen */
+}
+
+/* Rahmen innerhalb der Seitenleiste */
+.app-sidebar .sidebar-border {
+  border-color: var(--color-sidebar-border); /* Rahmenfarbe */
+}
+
+/* Links in der Seitenleiste */
+.app-sidebar .sidebar-link {
+  color: var(--color-sidebar-text); /* Linkfarbe */
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out; /* Sanfte Übergänge */
+}
+
+/* Hover-Zustand für Links in der Seitenleiste */
+.app-sidebar .sidebar-link:hover {
+  background-color: var(--color-sidebar-hover-background); /* Hintergrund beim Hover */
+  color: var(--color-sidebar-text-hover); /* Textfarbe beim Hover */
+}
+
+/* Aktiver Zustand für Links in der Seitenleiste */
+.app-sidebar .sidebar-link[data-active="true"] {
+  background-color: var(--color-sidebar-active-background); /* Hintergrund im aktiven Zustand */
+  color: var(--color-sidebar-active-text); /* Textfarbe im aktiven Zustand */
+}
+
+/* Abmelde-Button in der Seitenleiste */
+.app-sidebar .sidebar-logout-button {
+  background-color: var(--color-danger); /* Hintergrundfarbe */
+  color: var(--color-text-on-danger); /* Textfarbe */
+}
+.app-sidebar .sidebar-logout-button:hover {
+  background-color: var(--color-danger-hover); /* Hintergrund beim Hover */
+}
+
+/* Scrollbalken für react-data-grid (rdg) */
+/* Dies überschreibt die Standard-Scrollbalken von react-data-grid, um sie an das Theme anzupassen */
+.rdg::-webkit-scrollbar {
+  height: 8px; /* Höhe des horizontalen Scrollbalkens */
+  width: 8px; /* Breite des vertikalen Scrollbalkens */
+}
+.rdg::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3); /* Farbe des Scrollbalken-Daumens (leicht transparentes Weiß) */
+  border-radius: 4px; /* Abrundung des Scrollbalken-Daumens */
+}
