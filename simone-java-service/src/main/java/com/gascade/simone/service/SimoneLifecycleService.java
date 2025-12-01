@@ -1,4 +1,3 @@
-
 package com.gascade.simone.service;
 
 import org.slf4j.Logger;
@@ -15,6 +14,10 @@ import jakarta.annotation.PreDestroy;
  * Service-Klasse zur Verwaltung des Lebenszyklus der SIMONE API.
  * Verantwortlich für Initialisierung, Terminierung und Re-Initialisierung
  * der Remote API Verbindung.
+ *
+ * HINWEIS: Die Instanzprüfung (isSimoneApiSuccessfullyInstantiated) wurde entfernt, 
+ * da die SimoneApi-Instanz nun als Spring Bean injiziert wird, was ihren erfolgreichen 
+ * Ladezustand (durch SimoneApiConfig) impliziert.
  */
 @Service
 public class SimoneLifecycleService {
@@ -24,35 +27,24 @@ public class SimoneLifecycleService {
     private final SimoneApi simoneApi;
     private boolean isSimoneEnvironmentInitialized = false;
     
-    // Pfad zur api.ini auf dem WINDOWS SERVER (Remote API). Dieser Pfad wird 
-    // verwendet, wenn das Frontend keinen expliziten Pfad übergibt.
+    // Pfad zur api_server.INI auf dem WINDOWS SERVER (Remote API). Dieser Pfad wird 
+    // nur verwendet, wenn KEINE temporäre Kopie gewünscht wird.
     @Value("${simone.default.config.file.path}")
     private String defaultSimoneConfigFilePath;
 
     /**
      * Konstruktor, injiziert die Singleton-Instanz der SimoneApi.
+     * Der SimoneApi-Bean wird von SimoneApiConfig bereitgestellt, 
+     * welche auch das Laden der nativen Remote API Bibliothek (libSimoneRemoteApiJava64.so) übernimmt.
      */
     public SimoneLifecycleService(SimoneApi simoneApi) {
         if (simoneApi == null) {
+             // Kritischer Fall: Bean Injection fehlgeschlagen.
             logger.error("KRITISCH: SimoneApi Instanz konnte nicht injiziert werden. Die API ist nicht nutzbar.");
             throw new IllegalStateException("SimoneApi Instanz ist null. Native Bibliothek konnte nicht geladen oder die Bean nicht erstellt werden.");
         }
         this.simoneApi = simoneApi;
         logger.info("SIMONE-API-Instanz erfolgreich injiziert.");
-    }
-
-    /**
-     * Führt eine Normalisierung des Pfades durch, um Forward Slashes (/) durch Backslashes (\) 
-     * zu ersetzen, was für die Windows-basierte SIMONE API oft zuverlässiger ist.
-     * @param path Der einzugebende Pfad (kann null sein).
-     * @return Der bereinigte Pfad oder null.
-     */
-    private String normalizeWindowsPath(String path) {
-        if (path == null) {
-            return null;
-        }
-        // Ersetzt alle Forward Slashes durch Backslashes.
-        return path.trim().replace('/', '\\');
     }
 
     /**
@@ -82,7 +74,7 @@ public class SimoneLifecycleService {
 
     /**
      * Initialisiert die SIMONE-Umgebung mit angegebener Konfigurationsdatei.
-     * Dies baut die Verbindung zum SIMONE API Server auf dem Windows Server auf.
+     * Dies baut die Verbindung zum SIMONE API Server auf dem Windows Server auf (Schritt 6 & 7).
      *
      * @param configFilePath Optionaler Pfad zur Konfigurationsdatei auf dem Windows Server.
      * @param useTemporaryConfigCopy true = temporäre Kopie verwenden (SIMONE_FLAG_TMP_CONFIG).
@@ -99,35 +91,40 @@ public class SimoneLifecycleService {
             return "SIMONE API ist bereits initialisiert.";
         }
 
-        // Zuerst den effektiven Pfad bestimmen
-        String pathFromRequest = normalizeWindowsPath(configFilePath);
-        String pathFromDefault = normalizeWindowsPath(defaultSimoneConfigFilePath);
-
-        String effectiveConfigPath = (pathFromRequest != null && !pathFromRequest.trim().isEmpty())
-                ? pathFromRequest.trim()
-                : pathFromDefault;
-
-        if (effectiveConfigPath == null || effectiveConfigPath.trim().isEmpty()) {
-            logger.error("Konfigurationspfad ist leer oder nicht gesetzt.");
-            return "Initialisierung fehlgeschlagen: Kein Konfigurationspfad angegeben.";
-        }
+        String effectiveConfigPath;
+        int flags = SimoneConst.SIMONE_NO_FLAG;
         
-        logger.info("Initialisiere SIMONE Remote API mit Konfigurationsdatei auf Windows Server: [{}]", effectiveConfigPath);
-        logger.info("Temporäre Kopie verwenden: {}", useTemporaryConfigCopy);
+        // --- KORRIGIERTE LOGIK BASIEREND AUF VENDOR-EMPFEHLUNG ---
+        if (Boolean.TRUE.equals(useTemporaryConfigCopy)) {
+            // Vendor-Empfehlung: Leeren String ("") übergeben. Der API-Server verwendet die 
+            // Konfiguration, mit der er selbst gestartet wurde (-i Parameter, z.B. api_server.INI).
+            effectiveConfigPath = "";
+            flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG;
+            logger.info("Initialisiere SIMONE Remote API. Konfigurationspfad: \"\" (Server-Default), Flags: SIMONE_FLAG_TMP_CONFIG");
+        } else {
+            // Explizite Pfadangabe (wird nur verwendet, wenn KEINE temporäre Kopie gewünscht ist)
+            effectiveConfigPath = (configFilePath != null && !configFilePath.trim().isEmpty())
+                    ? configFilePath.trim()
+                    : defaultSimoneConfigFilePath;
 
-
+            if (effectiveConfigPath == null || effectiveConfigPath.trim().isEmpty()) {
+                logger.error("Konfigurationspfad ist leer oder nicht gesetzt.");
+                return "Initialisierung fehlgeschlagen: Kein Konfigurationspfad angegeben.";
+            }
+            logger.info("Initialisiere SIMONE Remote API mit explizitem Pfad auf Windows Server: [{}]", effectiveConfigPath);
+            // Flags bleiben SimoneConst.SIMONE_NO_FLAG (oder je nach Bedarf des Clients).
+        }
+        // --- ENDE KORRIGIERTE LOGIK ---
+        
+        
         try {
-            int flags = Boolean.TRUE.equals(useTemporaryConfigCopy)
-                    ? SimoneConst.SIMONE_FLAG_TMP_CONFIG
-                    : SimoneConst.SIMONE_NO_FLAG;
-
-            // simone_init_ex wird mit dem bereinigten WINDOWS-Pfad aufgerufen.
+            // simone_init_ex wird mit dem WINDOWS-Pfad (oder leeren String) aufgerufen.
             int status = this.simoneApi.simone_init_ex(effectiveConfigPath, flags); 
             logger.info("simone_init_ex Rückgabewert: {}", status);
 
             if (status == SimoneConst.simone_status_ok) {
                 this.isSimoneEnvironmentInitialized = true;
-                logger.info("SIMONE Remote API erfolgreich initialisiert mit Konfiguration: {}", effectiveConfigPath);
+                logger.info("SIMONE Remote API erfolgreich initialisiert. Verwendeter Pfad: {}", effectiveConfigPath.isEmpty() ? "Server-Default" : effectiveConfigPath);
                 return "SIMONE API erfolgreich initialisiert (Remote Verbindung hergestellt).";
             } else {
                 this.isSimoneEnvironmentInitialized = false;
