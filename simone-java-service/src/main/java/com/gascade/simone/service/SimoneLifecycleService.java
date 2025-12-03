@@ -12,12 +12,6 @@ import jakarta.annotation.PreDestroy;
 
 /**
  * Service-Klasse zur Verwaltung des Lebenszyklus der SIMONE API.
- * Verantwortlich für Initialisierung, Terminierung und Re-Initialisierung
- * der Remote API Verbindung.
- *
- * HINWEIS: Die Instanzprüfung (isSimoneApiSuccessfullyInstantiated) wurde entfernt, 
- * da die SimoneApi-Instanz nun als Spring Bean injiziert wird, was ihren erfolgreichen 
- * Ladezustand (durch SimoneApiConfig) impliziert.
  */
 @Service
 public class SimoneLifecycleService {
@@ -27,19 +21,23 @@ public class SimoneLifecycleService {
     private final SimoneApi simoneApi;
     private boolean isSimoneEnvironmentInitialized = false;
     
-    // Pfad zur api_server.INI auf dem WINDOWS SERVER (Remote API). Dieser Pfad wird 
-    // nur verwendet, wenn KEINE temporäre Kopie gewünscht wird.
+    // --- KONSTANTEN FÜR DEN REMOTE-SERVER ---
+    private static final String API_SERVER_HOST = "winsimone01.gascadead.gascade.de";
+    private static final int API_SERVER_PORT = 6612;
+    private static final String CONFIG_FILENAME_WITHOUT_EXTENSION = "api_server"; 
+
+
     @Value("${simone.default.config.file.path}")
     private String defaultSimoneConfigFilePath;
+    
+    // Der fehlerhafte statische Ladeblock wurde entfernt.
+
 
     /**
      * Konstruktor, injiziert die Singleton-Instanz der SimoneApi.
-     * Der SimoneApi-Bean wird von SimoneApiConfig bereitgestellt, 
-     * welche auch das Laden der nativen Remote API Bibliothek (libSimoneRemoteApiJava64.so) übernimmt.
      */
     public SimoneLifecycleService(SimoneApi simoneApi) {
         if (simoneApi == null) {
-             // Kritischer Fall: Bean Injection fehlgeschlagen.
             logger.error("KRITISCH: SimoneApi Instanz konnte nicht injiziert werden. Die API ist nicht nutzbar.");
             throw new IllegalStateException("SimoneApi Instanz ist null. Native Bibliothek konnte nicht geladen oder die Bean nicht erstellt werden.");
         }
@@ -57,6 +55,12 @@ public class SimoneLifecycleService {
 
         try {
             logger.info("Abfrage der SIMONE-API-Version...");
+            
+            // simone_set_remote_connection() wird nur hier aufgerufen, um Status 15 zu protokollieren.
+            // Der fehlerhafte Status 15 beweist das falsche JNI-Binding.
+            int connStatus = this.simoneApi.simone_set_remote_connection(API_SERVER_HOST, API_SERVER_PORT);
+            logger.warn("simone_set_remote_connection Status (Health Check): {}", connStatus);
+
             int versionInt = this.simoneApi.simone_api_version();
             logger.info("Rohwert der SIMONE API-Version: {}", versionInt);
 
@@ -64,20 +68,19 @@ public class SimoneLifecycleService {
                     ? versionInt + " (Rohwert)"
                     : "API-Fehlercode: " + versionInt;
         } catch (UnsatisfiedLinkError ule) {
-            logger.error("Link-Fehler bei simone_api_version() (Native Methode nicht gefunden): {}", ule.getMessage(), ule);
+            logger.error("Link-Fehler bei simone_api_version(): {}", ule.getMessage(), ule);
             return "Fehler: Link-Fehler der nativen Remote Bibliothek.";
         } catch (Throwable t) {
-            logger.error("Fehler bei simone_api_version(): {}", t.getMessage(), t);
+            logger.error("Unerwarteter Fehler bei simone_api_version(): {}", t.getMessage(), t);
             return "Fehler beim Abrufen der SIMONE API-Version.";
         }
     }
 
     /**
-     * Initialisiert die SIMONE-Umgebung mit angegebener Konfigurationsdatei.
-     * Dies baut die Verbindung zum SIMONE API Server auf dem Windows Server auf (Schritt 6 & 7).
+     * Initialisiert die SIMONE-Umgebung.
      *
-     * @param configFilePath Optionaler Pfad zur Konfigurationsdatei auf dem Windows Server.
-     * @param useTemporaryConfigCopy true = temporäre Kopie verwenden (SIMONE_FLAG_TMP_CONFIG).
+     * @param configFilePath Optionaler Pfad (IGNORIERT).
+     * @param useTemporaryConfigCopy (IGNORIERT).
      * @return Ergebnistext zur Initialisierung.
      */
     public String initializeSimone(String configFilePath, Boolean useTemporaryConfigCopy) {
@@ -90,47 +93,35 @@ public class SimoneLifecycleService {
             logger.warn("SIMONE API ist bereits initialisiert.");
             return "SIMONE API ist bereits initialisiert.";
         }
-
-        String effectiveConfigPath;
-        int flags = SimoneConst.SIMONE_NO_FLAG;
         
-        // --- KORRIGIERTE LOGIK BASIEREND AUF VENDOR-EMPFEHLUNG ---
-        if (Boolean.TRUE.equals(useTemporaryConfigCopy)) {
-            // Vendor-Empfehlung: Leeren String ("") übergeben. Der API-Server verwendet die 
-            // Konfiguration, mit der er selbst gestartet wurde (-i Parameter, z.B. api_server.INI).
-            effectiveConfigPath = "";
-            flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG;
-            logger.info("Initialisiere SIMONE Remote API. Konfigurationspfad: \"\" (Server-Default), Flags: SIMONE_FLAG_TMP_CONFIG");
-        } else {
-            // Explizite Pfadangabe (wird nur verwendet, wenn KEINE temporäre Kopie gewünscht ist)
-            effectiveConfigPath = (configFilePath != null && !configFilePath.trim().isEmpty())
-                    ? configFilePath.trim()
-                    : defaultSimoneConfigFilePath;
-
-            if (effectiveConfigPath == null || effectiveConfigPath.trim().isEmpty()) {
-                logger.error("Konfigurationspfad ist leer oder nicht gesetzt.");
-                return "Initialisierung fehlgeschlagen: Kein Konfigurationspfad angegeben.";
-            }
-            logger.info("Initialisiere SIMONE Remote API mit explizitem Pfad auf Windows Server: [{}]", effectiveConfigPath);
-            // Flags bleiben SimoneConst.SIMONE_NO_FLAG (oder je nach Bedarf des Clients).
+        // 1. Explizite Remote-Verbindung setzen
+        int connStatus = this.simoneApi.simone_set_remote_connection(API_SERVER_HOST, API_SERVER_PORT);
+        if (connStatus != 0) {
+             // Wenn dies fehlschlägt (Status 15), kann init_ex nicht erfolgreich sein.
+             logger.error("simone_set_remote_connection fehlgeschlagen. Status: {}", connStatus);
         }
-        // --- ENDE KORRIGIERTE LOGIK ---
+
+        // 2. Explizite Konfiguration (Dateiname und TMP_CONFIG)
+        final String initFilePath = CONFIG_FILENAME_WITHOUT_EXTENSION; 
+        final int flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG; 
+        final String logPath = initFilePath + ".INI (Temporäre Kopie)"; 
         
-        
+        logger.info("Initialisiere SIMONE Remote API. Konfiguration: [{}] | Flags: {}", logPath, flags);
+
         try {
-            // simone_init_ex wird mit dem WINDOWS-Pfad (oder leeren String) aufgerufen.
-            int status = this.simoneApi.simone_init_ex(effectiveConfigPath, flags); 
+            // simone_init_ex wird mit dem Dateinamen ohne Endung und TMP_CONFIG aufgerufen.
+            int status = this.simoneApi.simone_init_ex(initFilePath, flags); 
             logger.info("simone_init_ex Rückgabewert: {}", status);
 
             if (status == SimoneConst.simone_status_ok) {
                 this.isSimoneEnvironmentInitialized = true;
-                logger.info("SIMONE Remote API erfolgreich initialisiert. Verwendeter Pfad: {}", effectiveConfigPath.isEmpty() ? "Server-Default" : effectiveConfigPath);
+                logger.info("SIMONE Remote API erfolgreich initialisiert mit Konfiguration: {}", logPath);
                 return "SIMONE API erfolgreich initialisiert (Remote Verbindung hergestellt).";
             } else {
                 this.isSimoneEnvironmentInitialized = false;
                 SimString errorMsg = new SimString();
                 this.simoneApi.simone_last_error(errorMsg);
-                // Der Fehlertext kommt vom Remote API Server
+                
                 logger.error("Fehler bei Remote Initialisierung: Status: {}, SIMONE-Fehler: {}", status, errorMsg.getVal());
                 return "Initialisierung fehlgeschlagen. Status: " + status + ". SIMONE Remote Fehler: " + errorMsg.getVal();
             }
@@ -144,27 +135,29 @@ public class SimoneLifecycleService {
     }
 
     /**
+     * Gibt die SIMONE-Umgebung als initialisiert zurück.
+     */
+    public boolean isSimoneEnvironmentInitialized() {
+        return this.simoneApi != null && isSimoneEnvironmentInitialized;
+    }
+
+    /**
      * Terminierung der SIMONE API.
-     * Beendet die Remote-Sitzung.
-     *
-     * @return Rückmeldung über die Beendigung.
      */
     public String terminateSimone() {
         logger.info("SIMONE Remote API Termination wird durchgeführt (simone_end())...");
 
-        if (this.simoneApi == null) {
-            logger.warn("Beendigung übersprungen: API-Instanz war nicht verfügbar.");
+        if (this.simoneApi == null || !this.isSimoneEnvironmentInitialized) {
+            if (this.isSimoneEnvironmentInitialized) {
+                logger.warn("Beendigung der API-Session fehlgeschlagen, da API-Instanz null ist.");
+            } else {
+                 logger.info("SIMONE war nicht initialisiert – keine aktive Remote-Sitzung zum Beenden.");
+            }
             this.isSimoneEnvironmentInitialized = false;
-            return "Beendigung übersprungen: SIMONE API nicht geladen.";
-        }
-
-        if (!this.isSimoneEnvironmentInitialized) {
-            logger.info("SIMONE war nicht initialisiert – keine aktive Remote-Sitzung zum Beenden.");
             return "SIMONE API war nicht initialisiert.";
         }
 
         try {
-            // simone_end() beendet die Remote-Sitzung und den Slave API Server auf dem Windows Host.
             int status = this.simoneApi.simone_end();
             logger.info("simone_end() Rückgabewert: {}", status);
             this.isSimoneEnvironmentInitialized = false;
@@ -186,10 +179,6 @@ public class SimoneLifecycleService {
         }
     }
 
-    /**
-     * Wird automatisch beim Beenden des Services aufgerufen.
-     * Beendet die SIMONE-API falls noch initialisiert.
-     */
     @PreDestroy
     public void onShutdown() {
         logger.info("Anwendung wird beendet. Versuche SIMONE Remote API zu terminieren...");
@@ -200,26 +189,12 @@ public class SimoneLifecycleService {
         }
     }
 
-    /**
-     * Gibt zurück, ob die SIMONE-Umgebung erfolgreich initialisiert wurde und die Remote-Sitzung aktiv ist.
-     */
-    public boolean isSimoneEnvironmentInitialized() {
-        return this.simoneApi != null && isSimoneEnvironmentInitialized;
-    }
-
-    /**
-     * Beendet und reinitialisiert die SIMONE API – z. B. bei Verbindungs- oder Lizenzproblemen.
-     *
-     * @return Textmeldung zum Ergebnis.
-     * @throws RuntimeException bei Fehlschlag der Neuinitialisierung.
-     */
     public synchronized String reinitializeSimone() {
         logger.warn("SIMONE Remote API wird neu initialisiert...");
 
         terminateSimone();
 
-        // Übergabe von null für den configFilePath führt zur Verwendung des defaultSimoneConfigFilePath
-        String initMessage = initializeSimone(null, true);
+        String initMessage = initializeSimone(CONFIG_FILENAME_WITHOUT_EXTENSION, Boolean.TRUE);
 
         if (isSimoneEnvironmentInitialized()) {
             logger.info("SIMONE Remote API erfolgreich neu initialisiert.");

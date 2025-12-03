@@ -1,3 +1,5 @@
+
+// // frontend/src/components/simone/tabs/SettingsTabContent.tsx
 // "use client";
 
 // import React, {
@@ -114,8 +116,12 @@
 // );
 
 // export default function SettingsTabContent() {
-//   const { simoneState, setSimoneInitialized, setActiveNetwork } =
-//     useSimoneContext();
+//   const { 
+//     simoneState, 
+//     setSimoneInitialized, 
+//     setActiveNetwork,
+//     setActiveNetworkDirectory
+//   } = useSimoneContext();
 
 //   const [apiVersion, setApiVersion] = useState<string | null>(null);
 //   const [availableNetworks, setAvailableNetworks] = useState<string[]>([]);
@@ -123,8 +129,8 @@
 //     useState<string>("");
   
 //   const [userNetworkPath, setUserNetworkPath] = useState<string>("");
-//   const [activeNetworkDirectory, setActiveNetworkDirectory] = useState<string>("");
-//   const [isPrepared, setIsPrepared] = useState<boolean>(false);
+//   const [isInitializedWithDirectory, setIsInitializedWithDirectory] = useState(false);
+
 
 //   const [isLoading, setIsLoading] = useState({
 //     healthCheck: true,
@@ -178,25 +184,21 @@
 //     setIsLoading((prev) => ({ ...prev, initialize: true }));
 //     const toastId = toast.loading("Initialisiere SIMONE API...");
 //     try {
-//       // Schritt 1: Initialisierung des SIMONE-Dienstes mit der Standard-Konfigurationsdatei.
 //       const initResponse = await apiClient("/simone/initialize", {
 //         method: "POST",
-//         // Es wird kein configFilePath gesendet, damit der Proxy den Standardpfad verwendet.
 //         body: JSON.stringify({ useTemporaryConfigCopy: true }),
 //       });
 //       const initData = await initResponse.json();
 //       toast.success(initData.message, { id: toastId });
 
-//       // Schritt 2: Setzen des vom Benutzer angegebenen Netzwerkverzeichnisses.
 //       const setPathResponse = await apiClient("/simone/set-network-directory", {
 //         method: "POST",
 //         body: JSON.stringify({ networkPath: userNetworkPath }),
 //       });
 //       const setPathData = await setPathResponse.json();
 //       toast.success(setPathData.message, { id: toastId });
-
 //       setActiveNetworkDirectory(userNetworkPath);
-//       setIsPrepared(true);
+//       setIsInitializedWithDirectory(true);
 
 //       await handleHealthCheck();
 //       await handleListNetworks();
@@ -223,8 +225,8 @@
 //       await handleHealthCheck();
 //       setAvailableNetworks([]);
 //       setSelectedNetworkInDropdown("");
-//       setActiveNetworkDirectory("");
-//       setIsPrepared(false);
+//       setActiveNetworkDirectory(null);
+//       setIsInitializedWithDirectory(false);
 //     } catch (error) {
 //       const msg =
 //         error instanceof ApiError
@@ -240,7 +242,8 @@
 //     setIsLoading((prev) => ({ ...prev, listNetworks: true }));
 //     const toastId = toast.loading("Liste Netzwerke...");
 //     try {
-//       const response = await apiClient(`/simone/networks?directoryPath=${encodeURIComponent(userNetworkPath)}`, {
+//       const directoryPath = simoneState.activeNetworkDirectory || userNetworkPath;
+//       const response = await apiClient(`/simone/networks?directoryPath=${encodeURIComponent(directoryPath)}`, {
 //         method: "GET",
 //       });
 //       const data = await response.json();
@@ -308,8 +311,7 @@
 //     if (simoneState.isSimoneInitialized) {
 //       return { status: "initialized", message: "Initialisiert" };
 //     }
-//     // ✅ KORRIGIERT: Statusmeldung ändert sich, wenn die Vorbereitung abgeschlossen ist.
-//     if (isPrepared) {
+//     if (isInitializedWithDirectory) {
 //       return { status: "unknown", message: "Initialisierung vorbereitet. Bitte Netzwerk auswählen." };
 //     }
 //     return { status: "terminated", message: "Bereit zum Initialisieren" };
@@ -328,9 +330,10 @@
 //           <FiFolder className="mr-2 h-5 w-5 text-[var(--color-text-secondary)]" />{" "}
 //           Individuelles Netzwerkverzeichnis
 //         </h3>
-//         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-//           Geben Sie den Pfad zu Ihrem persönlichen SIMONE-Netzwerkordner an.
-//         </p>
+// <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+//   Geben Sie den Pfad zu Ihrem persönlichen SIMONE-Netzwerkordner im UNC-Format an (z.&nbsp;B. <code>\\gascadead.gascade.de\DFS\Gruppen\SIMONEUsers\Max_Mustermann\Nets</code>).
+// </p>
+
 //         <div
 //           className="mt-6 space-y-6 p-4 border rounded-lg bg-[var(--color-surface)] border-[var(--border-color)]"
 //         >
@@ -339,13 +342,13 @@
 //             id="userNetworkPath"
 //             value={userNetworkPath}
 //             onChange={handleUserNetworkPathChange}
-//             placeholder="z.B. X:/SimoneUsers/max_mustermann/Nets"
+//             placeholder="z.B. \\gascadead.gascade.de\DFS\Gruppen\SIMONEUsers\Max_Mustermann\Nets"
 //           />
 //         </div>
-//         {activeNetworkDirectory && (
+//         {simoneState.activeNetworkDirectory && (
 //           <div className="mt-4 text-sm text-[var(--color-text-secondary)]">
 //             Ausgewähltes Netzwerkverzeichnis:{" "}
-//             <span className="font-semibold text-[var(--color-text-primary)]">{activeNetworkDirectory}</span>
+//             <span className="font-semibold text-[var(--color-text-primary)]">{simoneState.activeNetworkDirectory}</span>
 //           </div>
 //         )}
 //       </section>
@@ -388,8 +391,7 @@
 //         <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
 //           <button
 //             onClick={handleInitializeAndSetPath}
-//             // ✅ KORRIGIERT: Deaktiviert, wenn bereits vorbereitet, initialisiert wird oder initialisiert ist.
-//             disabled={isLoading.initialize || simoneState.isSimoneInitialized || !userNetworkPath || isPrepared}
+//             disabled={isLoading.initialize || simoneState.isSimoneInitialized || !userNetworkPath || isInitializedWithDirectory}
 //             className="btn-primary bg-green-600 hover:bg-green-700 w-full sm:w-auto disabled:opacity-50"
 //           >
 //             {isLoading.initialize ? (
@@ -422,7 +424,7 @@
 //         >
 //           Netzwerkverwaltung
 //         </h3>
-//         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+//         <p className="mt-1 max-w-4xl text-sm leading-6 text-[var(--color-text-secondary)]">
 //           Hinweis: Die finale Initialisierung erfolgt erst mit Auswahl eines
 //           Netzwerks. Bitte Verfügbare Netzwerke auflisten und das aktive
 //           Netzwerk für alle Szenario-Operationen auswählen.
@@ -509,7 +511,6 @@ import React, {
   useEffect,
   useCallback,
   ChangeEvent,
-  FormEvent,
 } from "react";
 import { apiClient, ApiError } from "@/lib/apiClient";
 import {
@@ -528,6 +529,7 @@ import "react-tooltip/dist/react-tooltip.css";
 import toast from "react-hot-toast";
 import { useSimoneContext } from "@/contexts/SimoneContext";
 
+// --- Typdefinitionen ---
 type SimoneDisplayStatus =
   | "unknown"
   | "loading"
@@ -535,6 +537,7 @@ type SimoneDisplayStatus =
   | "terminated"
   | "error";
 
+// --- Hilfskomponente: StatusBadge ---
 const StatusBadge = ({
   status,
   message,
@@ -582,6 +585,7 @@ const StatusBadge = ({
   );
 };
 
+// --- Hilfskomponente: FormInput ---
 const FormInput = ({
   label,
   id,
@@ -603,7 +607,6 @@ const FormInput = ({
       {label}
     </label>
     <div className="mt-1">
-      {/* ✅ KORRIGIERT: Zusätzliche Klasse für Autofill-Hintergrund */}
       <input
         type="text"
         name={id}
@@ -617,6 +620,7 @@ const FormInput = ({
   </div>
 );
 
+// --- Hauptkomponente: SettingsTabContent ---
 export default function SettingsTabContent() {
   const { 
     simoneState, 
@@ -630,9 +634,11 @@ export default function SettingsTabContent() {
   const [selectedNetworkInDropdown, setSelectedNetworkInDropdown] =
     useState<string>("");
   
-  const [userNetworkPath, setUserNetworkPath] = useState<string>("");
-  const [isInitializedWithDirectory, setIsInitializedWithDirectory] = useState(false);
+  // Standardpfad C:\Simone\Simone-V6_37\Nets
+  const [userNetworkPath, setUserNetworkPath] = useState<string>("C:\\Simone\\Simone-V6_37\\Nets");
 
+  // Zustand, ob die API-Konfiguration (SimAPI.dll geladen) gesetzt wurde. 
+  const [isApiConfigurationSet, setIsApiConfigurationSet] = useState(false);
 
   const [isLoading, setIsLoading] = useState({
     healthCheck: true,
@@ -642,28 +648,50 @@ export default function SettingsTabContent() {
     selectNetwork: false,
   });
 
+  // --- Funktionalität: Gesundheits-Check und Status-Abruf ---
   const handleHealthCheck = useCallback(async () => {
     setIsLoading((prev) => ({ ...prev, healthCheck: true }));
     try {
       const response = await apiClient("/simone/health");
       const data = await response.json();
-      setApiVersion(data.simoneApiVersion || "N/A");
+      const version = data.simoneApiVersion || "N/A";
+      setApiVersion(version);
 
-      if (data.serviceStatus === "UP" || data.serviceStatus === "DEGRADED") {
+      const isServiceUp = (data.serviceStatus === "UP" || data.serviceStatus === "DEGRADED");
+      
+      setSimoneInitialized(isServiceUp); 
+      setIsApiConfigurationSet(isServiceUp); 
+
+      if (isServiceUp) {
+        // Versuche, das aktive Netzwerk und Verzeichnis abzurufen, um den Status zu verifizieren
         try {
           const currentNetResponse = await apiClient(
             "/simone/networks/current"
           );
           const currentNetData = await currentNetResponse.json();
+          
+          // API Session ist aktiv, da wir erfolgreich kommunizieren konnten
+          setSimoneInitialized(true); 
+          setIsApiConfigurationSet(true);
           setActiveNetwork(currentNetData.currentNetworkName);
-          setSimoneInitialized(!!currentNetData.currentNetworkName);
+          setActiveNetworkDirectory(currentNetData.currentNetworkDirectory); 
+          
+          if(currentNetData.currentNetworkDirectory && currentNetData.currentNetworkDirectory !== userNetworkPath) {
+               setUserNetworkPath(currentNetData.currentNetworkDirectory);
+          }
         } catch (e) {
+          // Fehler beim Abrufen von networks/current (was passiert, wenn API initialisiert, aber kein Netz selektiert ist)
+          setSimoneInitialized(true); // Bleibt TRUE, da Spring Boot läuft und API Version bekannt ist
+          setIsApiConfigurationSet(true); 
           setActiveNetwork(null);
-          setSimoneInitialized(false);
+          setActiveNetworkDirectory(null);
         }
       } else {
+        // API ist terminated oder DOWN
         setSimoneInitialized(false);
+        setIsApiConfigurationSet(false);
         setActiveNetwork(null);
+        setActiveNetworkDirectory(null);
       }
     } catch (error) {
       const msg =
@@ -672,38 +700,50 @@ export default function SettingsTabContent() {
           : "Verbindung zum Backend-Proxy fehlgeschlagen.";
       toast.error(msg);
       setSimoneInitialized(false);
+      setIsApiConfigurationSet(false);
       setActiveNetwork(null);
+      setActiveNetworkDirectory(null);
     } finally {
       setIsLoading((prev) => ({ ...prev, healthCheck: false }));
     }
-  }, [setActiveNetwork, setSimoneInitialized]);
+  }, [setActiveNetwork, setSimoneInitialized, setActiveNetworkDirectory, userNetworkPath]);
 
   useEffect(() => {
     handleHealthCheck();
   }, [handleHealthCheck]);
 
-  const handleInitializeAndSetPath = async () => {
+  // --- Funktionalität: Initialisierung (Schritt 1 & 2 zusammen) ---
+  const handleInitialize = async () => {
+    if (!userNetworkPath) {
+      toast.error("Bitte geben Sie einen Netzwerkordner-Pfad an.");
+      return;
+    }
     setIsLoading((prev) => ({ ...prev, initialize: true }));
-    const toastId = toast.loading("Initialisiere SIMONE API...");
+    const toastId = toast.loading("SIMONE Initialisierung und Pfadsetzung...");
+    
     try {
+      // SCHRITT 1: API Initialisierung 
+      // WICHTIGE KORREKTUR: useTemporaryConfigCopy auf FALSE setzen, um prepare_temp_config_db() Fehler zu vermeiden.
+      // configFilePath: "" 
       const initResponse = await apiClient("/simone/initialize", {
         method: "POST",
-        body: JSON.stringify({ useTemporaryConfigCopy: true }),
+        body: JSON.stringify({ useTemporaryConfigCopy: false, configFilePath: "" }), 
       });
       const initData = await initResponse.json();
-      toast.success(initData.message, { id: toastId });
+      toast.success(initData.message + " Fahre mit Pfadsetzung fort.", { id: toastId });
 
+      // SCHRITT 2: Netzwerkpfad setzen (simone_change_network_dir)
       const setPathResponse = await apiClient("/simone/set-network-directory", {
         method: "POST",
         body: JSON.stringify({ networkPath: userNetworkPath }),
       });
       const setPathData = await setPathResponse.json();
-      toast.success(setPathData.message, { id: toastId });
-      setActiveNetworkDirectory(userNetworkPath);
-      setIsInitializedWithDirectory(true);
+      toast.success(`Netzwerkpfad erfolgreich gesetzt: ${setPathData.currentNetworkDirectory}`, { id: toastId });
 
-      await handleHealthCheck();
-      await handleListNetworks();
+      // SCHRITT 3: Zustand aktualisieren
+      await handleHealthCheck(); // Muss den Status auf 'initialized' setzen
+      await handleListNetworks(userNetworkPath);
+
     } catch (error) {
       const msg =
         error instanceof ApiError
@@ -715,6 +755,7 @@ export default function SettingsTabContent() {
     }
   };
 
+  // --- Funktionalität: Beenden ---
   const handleTerminate = async () => {
     setIsLoading((prev) => ({ ...prev, terminate: true }));
     const toastId = toast.loading("Beende SIMONE...");
@@ -724,11 +765,11 @@ export default function SettingsTabContent() {
         "Beendigungsbefehl erfolgreich gesendet! Status wird aktualisiert...",
         { id: toastId }
       );
-      await handleHealthCheck();
+      // Setze lokale UI-Zustände zurück
       setAvailableNetworks([]);
       setSelectedNetworkInDropdown("");
-      setActiveNetworkDirectory(null);
-      setIsInitializedWithDirectory(false);
+      // Warte auf HealthCheck, um den finalen Zustand zu bestätigen
+      await handleHealthCheck();
     } catch (error) {
       const msg =
         error instanceof ApiError
@@ -740,11 +781,26 @@ export default function SettingsTabContent() {
     }
   };
 
-  const handleListNetworks = async () => {
+  // --- Funktionalität: Netzwerkliste abrufen ---
+  const handleListNetworks = async (directoryPathOverride?: string) => {
+    if (!simoneState.isSimoneInitialized) {
+        toast.error("Die SIMONE API muss zuerst initialisiert werden.");
+        return;
+    }
     setIsLoading((prev) => ({ ...prev, listNetworks: true }));
     const toastId = toast.loading("Liste Netzwerke...");
+    
+    // Priorität: Override-Pfad > Aktiver Context-Pfad
+    const directoryPath = directoryPathOverride || simoneState.activeNetworkDirectory;
+
+    if (!directoryPath) {
+        // Dies ist der Fehler, den wir jetzt sehen. Der Benutzer muss initialisieren.
+        toast.error("Kein gültiges Netzwerkverzeichnis bekannt.", { id: toastId });
+        setIsLoading((prev) => ({ ...prev, listNetworks: false }));
+        return;
+    }
+    
     try {
-      const directoryPath = simoneState.activeNetworkDirectory || userNetworkPath;
       const response = await apiClient(`/simone/networks?directoryPath=${encodeURIComponent(directoryPath)}`, {
         method: "GET",
       });
@@ -757,6 +813,7 @@ export default function SettingsTabContent() {
             id: toastId,
           });
         } else {
+          setSelectedNetworkInDropdown("");
           toast.success("Keine Netzwerke gefunden.", { id: toastId });
         }
       }
@@ -771,6 +828,7 @@ export default function SettingsTabContent() {
     }
   };
 
+  // --- Funktionalität: Netzwerk auswählen ---
   const handleSelectNetwork = async () => {
     if (!selectedNetworkInDropdown) {
       toast.error("Bitte wählen Sie ein Netzwerk aus.");
@@ -786,7 +844,7 @@ export default function SettingsTabContent() {
         body: JSON.stringify({ networkName: selectedNetworkInDropdown }),
       });
       const data = await response.json();
-      await handleHealthCheck();
+      await handleHealthCheck(); // Nötig, um den neuen Status (activeNetwork) abzurufen
       toast.success(data.message, { id: toastId });
     } catch (error) {
       const msg =
@@ -799,27 +857,39 @@ export default function SettingsTabContent() {
     }
   };
 
+  // --- Eingabe-Handler ---
   const handleUserNetworkPathChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUserNetworkPath(e.target.value);
   };
 
+  // --- Statusanzeige Logik ---
   const getDisplayStatus = (): {
     status: SimoneDisplayStatus;
     message: string;
   } => {
+    // Definiert, wann der Setup-Prozess als abgeschlossen gilt:
+    // API initialisiert UND das Verzeichnis ist gesetzt (ActiveNetworkDirectory ist nicht null)
+    const isSetupComplete = simoneState.isSimoneInitialized && !!simoneState.activeNetworkDirectory;
+
     if (isLoading.healthCheck || isLoading.initialize || isLoading.terminate) {
       return { status: "loading", message: "Wird verarbeitet..." };
     }
+    if (isSetupComplete) {
+      // Wenn alles initialisiert und der Pfad gesetzt ist
+      return { status: "initialized", message: `Aktiviert. Pfad: ${simoneState.activeNetworkDirectory}` };
+    }
     if (simoneState.isSimoneInitialized) {
-      return { status: "initialized", message: "Initialisiert" };
+       // Wenn die API verbunden ist, aber das Verzeichnis fehlt (z.B. nach Neustart)
+      return { status: "unknown", message: `API verbunden (v${apiVersion}). Setze Verzeichnis.` };
     }
-    if (isInitializedWithDirectory) {
-      return { status: "unknown", message: "Initialisierung vorbereitet. Bitte Netzwerk auswählen." };
-    }
-    return { status: "terminated", message: "Bereit zum Initialisieren" };
+    return { status: "terminated", message: "Bereit zur Initialisierung" };
   };
 
   const currentDisplayStatus = getDisplayStatus();
+
+  // Ist das Setup komplett? Dann Button deaktivieren.
+  const isSetupComplete = simoneState.isSimoneInitialized && !!simoneState.activeNetworkDirectory;
+
 
   return (
     <div className="space-y-12">
@@ -830,11 +900,11 @@ export default function SettingsTabContent() {
           className="text-lg font-semibold leading-6 text-[var(--color-text-primary)] flex items-center"
         >
           <FiFolder className="mr-2 h-5 w-5 text-[var(--color-text-secondary)]" />{" "}
-          Individuelles Netzwerkverzeichnis
+          1. Netzwerkpfad eingeben
         </h3>
-<p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-  Geben Sie den Pfad zu Ihrem persönlichen SIMONE-Netzwerkordner im UNC-Format an (z.&nbsp;B. <code>\\gascadead.gascade.de\DFS\Gruppen\SIMONEUsers\Max_Mustermann\Nets</code>).
-</p>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Geben Sie den **vollständigen Windows-Pfad** zu Ihrem SIMONE-Netzwerkordner an.
+        </p>
 
         <div
           className="mt-6 space-y-6 p-4 border rounded-lg bg-[var(--color-surface)] border-[var(--border-color)]"
@@ -844,12 +914,12 @@ export default function SettingsTabContent() {
             id="userNetworkPath"
             value={userNetworkPath}
             onChange={handleUserNetworkPathChange}
-            placeholder="z.B. \\gascadead.gascade.de\DFS\Gruppen\SIMONEUsers\Max_Mustermann\Nets"
+            placeholder="z.B. C:\Simone\Simone-V6_37\Nets"
           />
         </div>
         {simoneState.activeNetworkDirectory && (
           <div className="mt-4 text-sm text-[var(--color-text-secondary)]">
-            Ausgewähltes Netzwerkverzeichnis:{" "}
+            Aktives Verzeichnis (vom Server bestätigt):{" "}
             <span className="font-semibold text-[var(--color-text-primary)]">{simoneState.activeNetworkDirectory}</span>
           </div>
         )}
@@ -861,11 +931,8 @@ export default function SettingsTabContent() {
           id="api-connection-heading"
           className="text-lg font-semibold leading-6 text-[var(--color-text-primary)]"
         >
-          API-Verbindung
+          2. API-Verbindung und Initialisierung
         </h3>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Verwalten Sie die Verbindung zum zugrunde liegenden SIMONE-API-Dienst.
-        </p>
         <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-[var(--color-surface)] border-[var(--border-color)]">
           <div className="flex-shrink-0">
             <StatusBadge
@@ -892,8 +959,9 @@ export default function SettingsTabContent() {
         </div>
         <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
           <button
-            onClick={handleInitializeAndSetPath}
-            disabled={isLoading.initialize || simoneState.isSimoneInitialized || !userNetworkPath || isInitializedWithDirectory}
+            onClick={handleInitialize}
+            // KORREKTUR: Deaktiviert, wenn Setup komplett ist ODER der Pfad fehlt.
+            disabled={isLoading.initialize || isSetupComplete || !userNetworkPath}
             className="btn-primary bg-green-600 hover:bg-green-700 w-full sm:w-auto disabled:opacity-50"
           >
             {isLoading.initialize ? (
@@ -901,7 +969,7 @@ export default function SettingsTabContent() {
             ) : (
               <FiPower className="mr-2" />
             )}{" "}
-            SIMONE Initialisierung vorbereiten
+            SIMONE Initialisierung (Schritte 1-2)
           </button>
           <button
             onClick={handleTerminate}
@@ -924,12 +992,10 @@ export default function SettingsTabContent() {
           id="network-management-heading"
           className="text-lg font-semibold leading-6 text-[var(--color-text-primary)]"
         >
-          Netzwerkverwaltung
+          3. Netzwerk auswählen
         </h3>
         <p className="mt-1 max-w-4xl text-sm leading-6 text-[var(--color-text-secondary)]">
-          Hinweis: Die finale Initialisierung erfolgt erst mit Auswahl eines
-          Netzwerks. Bitte Verfügbare Netzwerke auflisten und das aktive
-          Netzwerk für alle Szenario-Operationen auswählen.
+          Netzwerke auflisten und das aktive Netzwerk für alle Szenario-Operationen auswählen.
         </p>
         <div className="mt-4 text-sm">
           <span className="font-semibold text-[var(--color-text-primary)]">
@@ -950,8 +1016,8 @@ export default function SettingsTabContent() {
             <button
               onClick={() => handleListNetworks()}
               disabled={
-                isLoading.listNetworks || !simoneState.isSimoneInitialized
-              }
+                isLoading.listNetworks || !isSetupComplete
+              } // Nur aktiv, wenn Verzeichnis gesetzt ist
               className="w-full sm:w-auto flex items-center justify-center disabled:opacity-50"
             >
               {isLoading.listNetworks ? (
