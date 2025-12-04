@@ -22,7 +22,11 @@ public class SimoneLifecycleService {
 
     private static final String API_SERVER_HOST = "winsimone01.gascadead.gascade.de";
     private static final int API_SERVER_PORT = 6612;
-    private static final String CONFIG_FILENAME = "api_server"; 
+    
+    // Änderung: null übergeben, damit der Server seine eigene (via -i gestartete) Konfiguration verwendet.
+    // Wenn hier ein Dateiname steht, sucht der Server diesen relativ zu seinem Arbeitsverzeichnis,
+    // was oft zu "Status 2" (File Not Found) führt.
+    private static final String CONFIG_FILENAME = null; 
 
     public SimoneLifecycleService(SimoneApi simoneApi) {
         this.simoneApi = simoneApi;
@@ -95,6 +99,7 @@ public class SimoneLifecycleService {
         logger.info("Starte simone_init_ex (TMP_CONFIG)...");
         try {
             // 2. Init
+            // Wir nutzen null als Dateinamen, um die Server-Konfiguration zu erben.
             int flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG;
             int status = this.simoneApi.simone_init_ex(CONFIG_FILENAME, flags);
 
