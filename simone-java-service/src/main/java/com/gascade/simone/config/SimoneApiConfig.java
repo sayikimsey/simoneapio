@@ -1,5 +1,10 @@
 package com.gascade.simone.config;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,56 +12,103 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import de.liwacom.simone.SimoneApi;
-import jakarta.annotation.PostConstruct;
+import de.liwacom.simone.SimoneConst;
 
 /**
  * Konfigurationsklasse für die SIMONE API.
- * Verwaltet das Laden der nativen Remote API Bibliothek und stellt die SimoneApi-Instanz als Spring Bean bereit.
+ * Lädt die native Remote-Bibliothek und erzwingt deren Nutzung durch "Library Masquerading".
  */
 @Configuration
 public class SimoneApiConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SimoneApiConfig.class);
 
-    /**
-     * Pfad zur nativen SIMONE Remote API Bibliothek (.so Datei) auf der Linux VM.
-     * Dieser Wert wird aus der Eigenschaft simone.api.library.path in application.properties geladen.
-     */
+    // Name der Remote-Lib für JNI (Java erwartet libSimoneRemoteApiJava.so)
+    private static final String LIB_NAME_REMOTE = "libSimoneRemoteApiJava.so";
+    // Name der Lokalen-Lib für JNI (Java erwartet libSimoneApiJava.so)
+    private static final String LIB_NAME_LOCAL = "libSimoneApiJava.so";
+
     @Value("${simone.api.library.path}")
     private String simoneApiLibraryPath;
 
-    /**
-     * Stellt die Singleton-Instanz der SimoneApi-Klasse als Spring Bean bereit.
-     * Diese Instanz wird zur Interaktion mit der SIMONE-Simulationssoftware verwendet.
-     *
-     * @return Die Singleton-Instanz der SimoneApi.
-     */
     @Bean
     public SimoneApi simoneApi() {
-        return SimoneApi.getInstance();
+        log.info("=== Initialisierung SIMONE Remote API (Masquerade Mode) ===");
+        log.info("Quell-Bibliothek: {}", simoneApiLibraryPath);
+
+        if (simoneApiLibraryPath == null || simoneApiLibraryPath.trim().isEmpty()) {
+            throw new IllegalStateException("Property 'simone.api.library.path' ist nicht gesetzt.");
+        }
+
+        try {
+            File sourceLibFile = new File(simoneApiLibraryPath);
+            if (!sourceLibFile.exists()) {
+                throw new IllegalStateException("Bibliotheksdatei nicht gefunden: " + simoneApiLibraryPath);
+            }
+
+            // 1. Installationspfad setzen (z.B. /opt/simone/Simone-V6_37)
+            // Dies ist notwendig, damit die Bibliothek ihre Abhängigkeiten (z.B. shlib) findet.
+            String installPath = sourceLibFile.getParentFile().getParent();
+            log.info("Setze SIMONE Installationspfad auf: {}", installPath);
+            SimoneApi.simone_api_set_simone_path(installPath);
+
+            // 2. Masquerading: Wir laden die Remote-Lib unter BEIDEN Namen.
+            // Das verhindert, dass SimoneApi.java aus Versehen die echte lokale Lib lädt,
+            // falls diese im System-Pfad liegt.
+            loadLibraryAs(sourceLibFile, LIB_NAME_REMOTE); // Für getRemoteApiInstance()
+            loadLibraryAs(sourceLibFile, LIB_NAME_LOCAL);  // Falls getInstance() intern aufgerufen wird
+
+            // 3. Instanz holen
+            // Wir rufen getRemoteApiInstance auf, da dies der korrekte Einstiegspunkt ist.
+            SimoneApi api = SimoneApi.getRemoteApiInstance();
+            
+            // 4. Check: Ist der Modus jetzt korrekt? (Sollte 2 sein)
+            // Da wir die Libs manuell geladen haben, sollte selbst ein interner Fallback
+            // auf "Local" jetzt unseren Remote-Code ausführen.
+            try {
+                int runMode = api.simone_get_runmode();
+                String modeStr = (runMode == SimoneConst.SIMONE_RUNMODE_REMOTE) ? "REMOTE" : "LOCAL";
+                log.info("API Run-Mode nach Laden: {} ({})", runMode, modeStr);
+                
+                if (runMode != SimoneConst.SIMONE_RUNMODE_REMOTE) {
+                    log.warn("ACHTUNG: API meldet immer noch LOCAL-Modus. Dies ist unerwartet nach Masquerading.");
+                }
+            } catch (Throwable t) {
+                log.warn("Konnte Runmode nicht prüfen: {}", t.getMessage());
+            }
+
+            return api;
+
+        } catch (UnsatisfiedLinkError e) {
+            log.error("Link-Fehler: {}", e.getMessage());
+            throw new RuntimeException("Konnte native SIMONE Bibliothek nicht laden.", e);
+        } catch (Exception e) {
+            log.error("Fehler in API Config: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     /**
-     * Wird nach der Konstruktion der Bean aufgerufen.
-     * Lädt die native SIMONE Remote API Bibliothek über den absoluten Pfad.
-     * Dies ist notwendig, um von der lokalen API-Nutzung zur Remote-API-Nutzung zu wechseln.
+     * Kopiert die Quell-Bibliothek in das Temp-Verzeichnis unter dem Zielnamen und lädt sie.
      */
-    @PostConstruct
-    public void loadSimoneApiNativeLibrary() {
-        log.info("Starte Ladevorgang der nativen SIMONE Remote API Bibliothek von Pfad: {}", simoneApiLibraryPath);
+    private void loadLibraryAs(File sourceFile, String targetName) throws IOException {
+        File tempDir = new File(System.getProperty("java.io.tmpdir"));
+        File tempFile = new File(tempDir, targetName);
 
-        try {
-            // Schritt 5: Laden der Remote API Bibliothek über den absoluten Pfad (System.load).
-            // Die geladene Bibliothek (libSimoneRemoteApiJava64.so) fungiert nun als Client 
-            // und baut die TCP/IP-Verbindung zum simone_api_server.exe auf dem Windows Server auf.
-            System.load(simoneApiLibraryPath);
-            log.info("SIMONE Remote API Bibliothek erfolgreich geladen. Die Anwendung ist nun bereit, über TCP/IP mit dem SIMONE API Server zu kommunizieren.");
-        } catch (UnsatisfiedLinkError e) {
-            log.error("FEHLER: Konnte die SIMONE Remote API Bibliothek nicht laden von {}.", simoneApiLibraryPath);
-            log.error("Stellen Sie sicher, dass die Datei libSimoneRemoteApiJava64.so unter dem angegebenen Pfad existiert, die Lese- und Ausführungsrechte korrekt gesetzt sind und die erforderlichen nativen Abhängigkeiten auf der Linux VM erfüllt sind.");
-            log.error("Ursache: {}", e.getMessage());
-            // Das Nichtladen der API ist ein kritischer Fehler.
-            throw new RuntimeException("Kritischer Fehler: SIMONE Remote API Bibliothek konnte nicht geladen werden.", e);
+        // Alte Datei löschen, um sicherzugehen
+        if (tempFile.exists()) {
+            try {
+                tempFile.delete();
+            } catch (Exception e) {
+                log.warn("Konnte alte Temp-Datei {} nicht löschen: {}", targetName, e.getMessage());
+            }
         }
+
+        log.info("Kopiere '{}' nach '{}'...", sourceFile.getName(), tempFile.getAbsolutePath());
+        Files.copy(sourceFile.toPath(), tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        tempFile.deleteOnExit();
+
+        log.info("Lade Bibliothek: {}", targetName);
+        System.load(tempFile.getAbsolutePath());
     }
 }

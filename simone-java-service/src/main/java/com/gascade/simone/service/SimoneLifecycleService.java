@@ -2,11 +2,10 @@ package com.gascade.simone.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;   
 import org.springframework.stereotype.Service;
 
 import de.liwacom.simone.SimString;
-import de.liwacom.simone.SimoneApi; 
+import de.liwacom.simone.SimoneApi;
 import de.liwacom.simone.SimoneConst;
 import jakarta.annotation.PreDestroy;
 
@@ -20,188 +19,129 @@ public class SimoneLifecycleService {
 
     private final SimoneApi simoneApi;
     private boolean isSimoneEnvironmentInitialized = false;
-    
-    // --- KONSTANTEN FÜR DEN REMOTE-SERVER ---
+
     private static final String API_SERVER_HOST = "winsimone01.gascadead.gascade.de";
     private static final int API_SERVER_PORT = 6612;
-    private static final String CONFIG_FILENAME_WITHOUT_EXTENSION = "api_server"; 
+    private static final String CONFIG_FILENAME = "api_server"; 
 
-
-    @Value("${simone.default.config.file.path}")
-    private String defaultSimoneConfigFilePath;
-    
-    // Der fehlerhafte statische Ladeblock wurde entfernt.
-
-
-    /**
-     * Konstruktor, injiziert die Singleton-Instanz der SimoneApi.
-     */
     public SimoneLifecycleService(SimoneApi simoneApi) {
-        if (simoneApi == null) {
-            logger.error("KRITISCH: SimoneApi Instanz konnte nicht injiziert werden. Die API ist nicht nutzbar.");
-            throw new IllegalStateException("SimoneApi Instanz ist null. Native Bibliothek konnte nicht geladen oder die Bean nicht erstellt werden.");
-        }
         this.simoneApi = simoneApi;
-        logger.info("SIMONE-API-Instanz erfolgreich injiziert.");
+        logger.info("SimoneLifecycleService gestartet.");
     }
 
     /**
-     * Gibt die API-Versionsnummer als lesbare Zeichenkette zurück.
+     * Konfiguriert die Remote-Verbindung.
+     * Dies muss erfolgreich sein, damit alles andere funktioniert.
      */
-    public String getSimoneApiVersionString() {
-        if (this.simoneApi == null) {
-            return "Fehler: SIMONE API native Komponente nicht geladen (Instanz ist null).";
-        }
-
+    private boolean setupRemoteConnection() {
         try {
-            logger.info("Abfrage der SIMONE-API-Version...");
+            logger.info("Setze Remote-Verbindung: {}:{}", API_SERVER_HOST, API_SERVER_PORT);
+            int status = this.simoneApi.simone_set_remote_connection(API_SERVER_HOST, API_SERVER_PORT);
             
-            // simone_set_remote_connection() wird nur hier aufgerufen, um Status 15 zu protokollieren.
-            // Der fehlerhafte Status 15 beweist das falsche JNI-Binding.
-            int connStatus = this.simoneApi.simone_set_remote_connection(API_SERVER_HOST, API_SERVER_PORT);
-            logger.warn("simone_set_remote_connection Status (Health Check): {}", connStatus);
-
-            int versionInt = this.simoneApi.simone_api_version();
-            logger.info("Rohwert der SIMONE API-Version: {}", versionInt);
-
-            return (versionInt >= 0)
-                    ? versionInt + " (Rohwert)"
-                    : "API-Fehlercode: " + versionInt;
-        } catch (UnsatisfiedLinkError ule) {
-            logger.error("Link-Fehler bei simone_api_version(): {}", ule.getMessage(), ule);
-            return "Fehler: Link-Fehler der nativen Remote Bibliothek.";
+            if (status == SimoneConst.simone_status_ok) {
+                return true;
+            } else {
+                // Status 15 (Not Implemented) bedeutet, wir nutzen immer noch die falsche (lokale) Lib.
+                logger.error("simone_set_remote_connection fehlgeschlagen. Status: {}", status);
+                return false;
+            }
         } catch (Throwable t) {
-            logger.error("Unerwarteter Fehler bei simone_api_version(): {}", t.getMessage(), t);
-            return "Fehler beim Abrufen der SIMONE API-Version.";
+            logger.error("Exception bei setupRemoteConnection: {}", t.getMessage());
+            return false;
         }
     }
 
-    /**
-     * Initialisiert die SIMONE-Umgebung.
-     *
-     * @param configFilePath Optionaler Pfad (IGNORIERT).
-     * @param useTemporaryConfigCopy (IGNORIERT).
-     * @return Ergebnistext zur Initialisierung.
-     */
-    public String initializeSimone(String configFilePath, Boolean useTemporaryConfigCopy) {
+    public synchronized String getSimoneApiVersionString() {
+        logger.info("Diagnose-Abfrage gestartet...");
         
-        if (this.simoneApi == null) {
-            this.isSimoneEnvironmentInitialized = false;
-            return "Initialisierung fehlgeschlagen: SIMONE API Instanz nicht verfügbar.";
+        // 1. Verbindung setzen
+        if (!setupRemoteConnection()) {
+            return "Fehler: Konnte Remote-Verbindung nicht setzen (Lokal-Modus aktiv?).";
         }
-        if (this.isSimoneEnvironmentInitialized) {
-            logger.warn("SIMONE API ist bereits initialisiert.");
-            return "SIMONE API ist bereits initialisiert.";
-        }
-        
-        // 1. Explizite Remote-Verbindung setzen
-        int connStatus = this.simoneApi.simone_set_remote_connection(API_SERVER_HOST, API_SERVER_PORT);
-        if (connStatus != 0) {
-             // Wenn dies fehlschlägt (Status 15), kann init_ex nicht erfolgreich sein.
-             logger.error("simone_set_remote_connection fehlgeschlagen. Status: {}", connStatus);
-        }
-
-        // 2. Explizite Konfiguration (Dateiname und TMP_CONFIG)
-        final String initFilePath = CONFIG_FILENAME_WITHOUT_EXTENSION; 
-        final int flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG; 
-        final String logPath = initFilePath + ".INI (Temporäre Kopie)"; 
-        
-        logger.info("Initialisiere SIMONE Remote API. Konfiguration: [{}] | Flags: {}", logPath, flags);
 
         try {
-            // simone_init_ex wird mit dem Dateinamen ohne Endung und TMP_CONFIG aufgerufen.
-            int status = this.simoneApi.simone_init_ex(initFilePath, flags); 
-            logger.info("simone_init_ex Rückgabewert: {}", status);
+            // 2. Runmode prüfen
+            int runMode = this.simoneApi.simone_get_runmode();
+            logger.info("Runmode: {} (Erwartet: 2)", runMode);
+
+            // 3. Version abrufen (löst Netzwerkverbindung aus)
+            int versionInt = this.simoneApi.simone_api_remote_version();
+            logger.info("Remote Version: {}", versionInt);
+            
+            if (versionInt < 0) {
+                logger.warn("Remote Version ist negativ. Versuche Standard API Version...");
+                int localVer = this.simoneApi.simone_api_version();
+                return "Remote:-1 / Lokal:" + localVer;
+            }
+
+            return String.valueOf(versionInt);
+
+        } catch (Exception e) {
+            logger.error("Fehler bei Diagnose: {}", e.getMessage());
+            return "Exception: " + e.getMessage();
+        }
+    }
+
+    public synchronized String initializeSimone(String ignoredPath, Boolean ignoredBool) {
+        if (this.isSimoneEnvironmentInitialized) {
+            return "Bereits initialisiert.";
+        }
+
+        // 1. Verbindung setzen
+        if (!setupRemoteConnection()) {
+            return "Initialisierung abgebrochen: Setup fehlgeschlagen.";
+        }
+
+        logger.info("Starte simone_init_ex (TMP_CONFIG)...");
+        try {
+            // 2. Init
+            int flags = SimoneConst.SIMONE_FLAG_TMP_CONFIG;
+            int status = this.simoneApi.simone_init_ex(CONFIG_FILENAME, flags);
 
             if (status == SimoneConst.simone_status_ok) {
                 this.isSimoneEnvironmentInitialized = true;
-                logger.info("SIMONE Remote API erfolgreich initialisiert mit Konfiguration: {}", logPath);
-                return "SIMONE API erfolgreich initialisiert (Remote Verbindung hergestellt).";
+                logger.info("simone_init_ex erfolgreich.");
+                return "Initialisierung erfolgreich.";
             } else {
-                this.isSimoneEnvironmentInitialized = false;
-                SimString errorMsg = new SimString();
-                this.simoneApi.simone_last_error(errorMsg);
-                
-                logger.error("Fehler bei Remote Initialisierung: Status: {}, SIMONE-Fehler: {}", status, errorMsg.getVal());
-                return "Initialisierung fehlgeschlagen. Status: " + status + ". SIMONE Remote Fehler: " + errorMsg.getVal();
+                SimString errMsg = new SimString();
+                this.simoneApi.simone_last_error(errMsg);
+                String errText = errMsg.getVal();
+                logger.error("Init fehlgeschlagen: Status {}, Text: {}", status, errText);
+                return "Fehler (" + status + "): " + errText;
             }
-        } catch (UnsatisfiedLinkError ule) {
-            logger.error("Link-Fehler während Initialisierung: {}", ule.getMessage(), ule);
-            return "Initialisierung fehlgeschlagen: Link-Fehler der nativen Bibliothek.";
-        } catch (Throwable t) {
-            logger.error("Unerwarteter Fehler bei Initialisierung: {}", t.getMessage(), t);
-            return "Initialisierung fehlgeschlagen: Unerwarteter Fehler: " + t.getMessage();
+        } catch (Exception e) {
+            logger.error("Exception bei Init: {}", e.getMessage(), e);
+            return "Exception: " + e.getMessage();
         }
     }
 
-    /**
-     * Gibt die SIMONE-Umgebung als initialisiert zurück.
-     */
-    public boolean isSimoneEnvironmentInitialized() {
-        return this.simoneApi != null && isSimoneEnvironmentInitialized;
-    }
-
-    /**
-     * Terminierung der SIMONE API.
-     */
-    public String terminateSimone() {
-        logger.info("SIMONE Remote API Termination wird durchgeführt (simone_end())...");
-
-        if (this.simoneApi == null || !this.isSimoneEnvironmentInitialized) {
-            if (this.isSimoneEnvironmentInitialized) {
-                logger.warn("Beendigung der API-Session fehlgeschlagen, da API-Instanz null ist.");
-            } else {
-                 logger.info("SIMONE war nicht initialisiert – keine aktive Remote-Sitzung zum Beenden.");
-            }
-            this.isSimoneEnvironmentInitialized = false;
-            return "SIMONE API war nicht initialisiert.";
-        }
-
+    public synchronized String terminateSimone() {
+        if (!this.isSimoneEnvironmentInitialized) return "Nicht aktiv.";
         try {
             int status = this.simoneApi.simone_end();
-            logger.info("simone_end() Rückgabewert: {}", status);
             this.isSimoneEnvironmentInitialized = false;
-
-            if (status == SimoneConst.simone_status_ok) {
-                return "SIMONE API erfolgreich beendet (Remote-Sitzung geschlossen).";
-            } else {
-                SimString errorMsg = new SimString();
-                this.simoneApi.simone_last_error(errorMsg);
-                logger.warn("Remote Beendigung lieferte Status: {}, SIMONE: {}", status, errorMsg.getVal());
-                return "Beendigung SIMONE API fehlgeschlagen. Status " + status + ". SIMONE Fehler: " + errorMsg.getVal();
-            }
-        } catch (UnsatisfiedLinkError ule) {
-            logger.error("Link-Fehler bei Beendigung: {}", ule.getMessage(), ule);
-            return "Beendigung fehlgeschlagen: Link-Fehler der nativen Bibliothek.";
-        } catch (Throwable t) {
-            logger.error("Unerwarteter Fehler bei Beendigung: {}", t.getMessage(), t);
-            return "Beendigung fehlgeschlagen: Unerwarteter Fehler: " + t.getMessage();
+            if (status == SimoneConst.simone_status_ok) return "Beendet.";
+            
+            SimString err = new SimString();
+            this.simoneApi.simone_last_error(err);
+            return "Fehler beim Beenden (" + status + "): " + err.getVal();
+        } catch (Exception e) {
+            this.isSimoneEnvironmentInitialized = false;
+            return "Fehler: " + e.getMessage();
         }
+    }
+
+    public boolean isSimoneEnvironmentInitialized() {
+        return isSimoneEnvironmentInitialized;
     }
 
     @PreDestroy
     public void onShutdown() {
-        logger.info("Anwendung wird beendet. Versuche SIMONE Remote API zu terminieren...");
-        if (this.isSimoneEnvironmentInitialized && this.simoneApi != null) {
-            terminateSimone();
-        } else {
-            logger.info("SIMONE war nicht initialisiert – keine Remote-Sitzung zum Beenden notwendig.");
-        }
+        if (isSimoneEnvironmentInitialized) terminateSimone();
     }
 
     public synchronized String reinitializeSimone() {
-        logger.warn("SIMONE Remote API wird neu initialisiert...");
-
         terminateSimone();
-
-        String initMessage = initializeSimone(CONFIG_FILENAME_WITHOUT_EXTENSION, Boolean.TRUE);
-
-        if (isSimoneEnvironmentInitialized()) {
-            logger.info("SIMONE Remote API erfolgreich neu initialisiert.");
-            return "SIMONE erfolgreich neu initialisiert.";
-        } else {
-            logger.error("Reinitialisierung fehlgeschlagen: {}", initMessage);
-            throw new RuntimeException("Reinitialisierung SIMONE fehlgeschlagen: " + initMessage);
-        }
+        return initializeSimone(null, null);
     }
 }
